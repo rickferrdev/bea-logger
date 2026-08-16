@@ -1,24 +1,137 @@
+import { appendFileSync } from "node:fs";
+import { type InspectColor, styleText } from "node:util";
+
+/** Severity levels supported by Bea Logger. */
+export type LogLevel = "info" | "warn" | "error" | "fatal" | "debug";
+
+/** Structured information produced for each log entry. */
 export type LogData = {
-	level: string;
+	/** Severity assigned to the entry. */
+	level: LogLevel;
+	/** Message supplied to the logger method. */
 	message: string;
+	/** Entry creation time as an ISO 8601 string. */
 	timestamp: string;
 };
 
+/** Converts structured log data into its textual representation. */
 export type Formatter = (data: LogData) => string;
-export type Transport = (data: LogData, formatted: string) => void;
 
+/**
+ * Sends a log entry to a destination.
+ * Transports may complete synchronously or return a promise.
+ *
+ * The logger awaits each transport in registration order. A rejected promise
+ * is propagated by the logger method, and later transports are not executed.
+ *
+ * @param data A read-only view of the original structured entry.
+ * @param formatted The entry rendered by the logger's formatter.
+ * @returns Nothing for synchronous transports, or a promise that settles when
+ * the asynchronous destination finishes processing the entry.
+ */
+export type Transport = (
+	data: Readonly<LogData>,
+	formatted: string,
+) => void | Promise<void>;
+
+/** Built-in log formatters. */
 export const format = {
-	pretty: (data) => `[${data.level.toUpperCase()}]: ${data.message}`,
-	simple: (data) => `${data.level}: ${data.message}`,
-	verbose: (data) => `${data.timestamp} [${data.level}]: ${data.message}`,
-} satisfies Record<string, Formatter>;
+	/** Produces a colorized, human-readable representation for terminals. */
+	pretty,
+	/** Includes the timestamp, level, and message. */
+	verbose: ((data) =>
+		`${data.timestamp} [${data.level}]: ${data.message}`) satisfies Formatter,
+	/** Includes only the level and message. */
+	simple: ((data) => `${data.level}: ${data.message}`) satisfies Formatter,
+	/** Serializes the complete entry as JSON. */
+	json: ((data) => JSON.stringify(data)) satisfies Formatter,
+};
 
+/** Built-in destinations for log entries. */
 export const transports = {
-	console: (_, formatted) => console.log(formatted),
-} satisfies Record<string, Transport>;
+	/** Writes the formatted entry to the standard console. */
+	console: ((_, formatted) => {
+		console.log(formatted);
+	}) satisfies Transport,
 
-function levels(formatter: Formatter, transports: Transport[]) {
-	function buildLogData(level: string, message: string): LogData {
+	/** Creates a transport that appends entries to a file. */
+	file,
+};
+
+/** Options accepted by the file transport. */
+export type FileTransportOptions = {
+	/** Path of the file that receives the log entries. */
+	filename: string;
+	/**
+	 * Formatter used only by this transport.
+	 * Uses the logger's already-formatted output when omitted.
+	 */
+	formatter?: Formatter;
+	/** Line ending appended after each entry. Defaults to `"\n"`. */
+	eol?: string;
+};
+
+type LogColors = Record<
+	LogLevel,
+	{
+		level: InspectColor[];
+		message: InspectColor[];
+		separator: InspectColor[];
+	}
+>;
+
+const logColors: LogColors = {
+	info: {
+		level: ["bgBlue", "white", "bold"],
+		message: ["white"],
+		separator: ["blue"],
+	},
+	warn: {
+		level: ["bgYellow", "black", "bold"],
+		message: ["yellow"],
+		separator: ["yellow"],
+	},
+	error: {
+		level: ["bgRed", "white", "bold"],
+		message: ["red"],
+		separator: ["red"],
+	},
+	fatal: {
+		level: ["bgMagenta", "white", "bold"],
+		message: ["magenta", "bold"],
+		separator: ["magenta"],
+	},
+	debug: {
+		level: ["bgGray", "white", "bold"],
+		message: ["gray", "dim"],
+		separator: ["gray"],
+	},
+};
+
+/** Renders a log entry with colors associated with its severity. */
+function pretty(data: LogData): string {
+	const colors = logColors[data.level];
+	const level = styleText(colors.level, `[${data.level.toUpperCase()}]`);
+	const separator = styleText(colors.separator, `: `);
+	const message = styleText(colors.message, data.message);
+
+	return `${level}${separator}${message}`;
+}
+
+/** Creates a synchronous, append-only file transport. */
+function file({
+	filename,
+	formatter,
+	eol = "\n",
+}: FileTransportOptions): Transport {
+	return (data: LogData, formatted: string) => {
+		const output = formatter ? formatter(data) : formatted;
+		appendFileSync(filename, output + eol, "utf-8");
+	};
+}
+
+function levels(formatter: Formatter, transports: Transport[]): Logger {
+	function buildLogData(level: LogLevel, message: string): LogData {
 		return {
 			level,
 			message,
@@ -26,41 +139,57 @@ function levels(formatter: Formatter, transports: Transport[]) {
 		};
 	}
 
-	function handler(level: string, message: string) {
+	async function handler(level: LogLevel, message: string) {
 		const log = buildLogData(level, message);
 		const formatted = formatter(log);
 		for (const transport of transports) {
-			transport(log, formatted);
+			await transport(log, formatted);
 		}
 	}
 
 	return {
-		info: (message: string) => {
-			handler("info", message);
-		},
-		warn: (message: string) => {
-			handler("warn", message);
-		},
-		error: (message: string) => {
-			handler("error", message);
-		},
-		fatal: (message: string) => {
-			handler("fatal", message);
-		},
-		debug: (message: string) => {
-			handler("debug", message);
-		},
+		info: (message: string) => handler("info", message),
+		warn: (message: string) => handler("warn", message),
+		error: (message: string) => handler("error", message),
+		fatal: (message: string) => handler("fatal", message),
+		debug: (message: string) => handler("debug", message),
 	};
 }
 
-type CreateLoggerOptions = {
+/**
+ * Logger methods available for each supported severity level.
+ *
+ * Every method resolves after all transports finish or rejects when a
+ * transport fails.
+ */
+export type Logger = Record<LogLevel, (message: string) => Promise<void>>;
+
+/** Options used to create a logger instance. */
+export type CreateLoggerOptions = {
+	/** Formatter shared by transports without their own formatter. */
 	formatter?: Formatter;
-	transport: Transport[] | Transport;
+	/** One destination or a list of destinations for every log entry. */
+	transport?: Transport[] | Transport;
 };
 
+/**
+ * Creates a logger with methods for each supported severity level.
+ * Entries are dispatched to every configured transport in registration order.
+ * Each log method awaits its transports and propagates transport failures.
+ *
+ * @example
+ * ```ts
+ * const logger = bea.createLogger({
+ *   formatter: bea.format.verbose,
+ *   transport: [bea.transports.console, bea.transports.file({ filename: "app.log" })],
+ * });
+ *
+ * await logger.info("Server started");
+ * ```
+ */
 export function createLogger({
 	transport: tp = transports.console,
 	formatter = format.pretty,
-}: CreateLoggerOptions) {
+}: CreateLoggerOptions = {}): Logger {
 	return levels(formatter, Array.isArray(tp) ? tp : [tp]);
 }
