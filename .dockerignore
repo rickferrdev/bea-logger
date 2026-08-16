@@ -1,0 +1,14 @@
+.git
+.github
+.env
+.env.*
+node_modules
+dist
+coverage
+logs
+*.log
+*.tgz
+*.tsbuildinfo
+.cache
+.idea
+.DS_Store
