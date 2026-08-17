@@ -89,7 +89,8 @@ Available presets are `bea.format.pretty`, `bea.format.simple`,
 
 ## Add structured context
 
-Every log method accepts an optional context object with string values. The
+Every log method accepts an optional context object with strings, numbers,
+booleans, nullish values, arrays, objects, dates and errors. The
 context is available to formatters and transports, and the `pretty`, `simple`
 and `json` presets include it in their output:
 
@@ -149,12 +150,13 @@ const logger = bea.createLogger({
 await logger.info("Saved to the console and file");
 ```
 
-The destination directory must already exist. File writes are synchronous, so
-this transport is best suited to small applications and moderate log volumes.
+The destination directory must already exist. File writes are asynchronous and
+`await logger.info(...)` waits until the append completes. Transports are
+ordered within one log call; separate calls made without `await` may overlap.
 
 ## Make it yours
 
-A formatter receives structured log data and returns a string:
+A formatter receives structured log data and returns a string or a promise:
 
 ```ts
 import * as bea from "@rickferrdevelop/bea-logger";
@@ -168,6 +170,20 @@ const logger = bea.createLogger({
   formatter: json,
   transport: bea.transports.console,
 });
+```
+
+Text formatters render nested objects and arrays as JSON, dates as ISO strings,
+and errors with their stack or message. The JSON formatter preserves error
+details and replaces circular references with `"[Circular]"`. Properties whose
+value is `undefined` follow `JSON.stringify` behavior and are omitted.
+
+Async formatters are also supported:
+
+```ts
+const formatter: bea.Formatter = async (data) => {
+  const prefix = await loadPrefix();
+  return `${prefix} ${data.level}: ${data.message}`;
+};
 ```
 
 A transport receives both the original data and its formatted representation:
