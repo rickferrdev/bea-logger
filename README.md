@@ -87,6 +87,50 @@ await logger.info("Ready to accept connections");
 Available presets are `bea.format.pretty`, `bea.format.simple`,
 `bea.format.verbose` and `bea.format.json`.
 
+## Add structured context
+
+Every log method accepts an optional context object with string values. The
+context is available to formatters and transports, and the `pretty`, `simple`
+and `json` presets include it in their output:
+
+```ts
+await logger.info("User created", {
+  userId: "42",
+  role: "admin",
+});
+```
+
+The simple formatter renders this as:
+
+```text
+info: User created userId=42 role=admin
+```
+
+Custom formatters receive the context both as `data.context` and as their
+second argument:
+
+```ts
+const formatter: bea.Formatter = (data, context) =>
+  `${data.level}: ${data.message} (${context?.requestId ?? "no request"})`;
+```
+
+### Customize pretty-format colors
+
+Use `format.custom` to override any pretty-format color while retaining the
+defaults for all unspecified levels and fields:
+
+```ts
+const logger = bea.createLogger({
+  formatter: bea.format.custom({
+    pretty: {
+      debug: {
+        context: { key: ["bold"], value: ["cyan"] },
+      },
+    },
+  }),
+});
+```
+
 ## Write logs to a file
 
 The file transport appends one entry at a time and can use its own formatter:

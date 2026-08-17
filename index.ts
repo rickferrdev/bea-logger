@@ -4,6 +4,8 @@ import { type InspectColor, styleText } from "node:util";
 /** Severity levels supported by Bea Logger. */
 export type LogLevel = "info" | "warn" | "error" | "fatal" | "debug";
 
+export type LogContext = Record<string, string>;
+
 /** Structured information produced for each log entry. */
 export type LogData = {
 	/** Severity assigned to the entry. */
@@ -12,10 +14,12 @@ export type LogData = {
 	message: string;
 	/** Entry creation time as an ISO 8601 string. */
 	timestamp: string;
+	/** Optional structured metadata attached to the entry. */
+	context?: LogContext;
 };
 
 /** Converts structured log data into its textual representation. */
-export type Formatter = (data: LogData) => string;
+export type Formatter = (data: LogData, context?: LogContext) => string;
 
 /**
  * Sends a log entry to a destination.
@@ -36,13 +40,21 @@ export type Transport = (
 
 /** Built-in log formatters. */
 export const format = {
+	custom,
 	/** Produces a colorized, human-readable representation for terminals. */
-	pretty,
+	pretty: ((data: LogData, context?: LogContext) =>
+		formatPretty(data, context)) satisfies Formatter,
 	/** Includes the timestamp, level, and message. */
 	verbose: ((data) =>
 		`${data.timestamp} [${data.level}]: ${data.message}`) satisfies Formatter,
 	/** Includes only the level and message. */
-	simple: ((data) => `${data.level}: ${data.message}`) satisfies Formatter,
+	simple: ((data: LogData, context?: LogContext) => {
+		const contextFormat: string[] = [];
+		for (const [key, value] of Object.entries(context ?? {})) {
+			contextFormat.push(`${key}=${value}`);
+		}
+		return appendContext(`${data.level}: ${data.message}`, contextFormat);
+	}) satisfies Formatter,
 	/** Serializes the complete entry as JSON. */
 	json: ((data) => JSON.stringify(data)) satisfies Formatter,
 };
@@ -77,45 +89,127 @@ type LogColors = Record<
 		level: InspectColor[];
 		message: InspectColor[];
 		separator: InspectColor[];
+		context: {
+			key: InspectColor[];
+			value: InspectColor[];
+			separator: InspectColor[];
+		};
 	}
 >;
 
-const logColors: LogColors = {
+const defaultLogColors: LogColors = {
 	info: {
 		level: ["bgBlue", "white", "bold"],
 		message: ["white"],
 		separator: ["blue"],
+		context: {
+			key: ["dim"],
+			value: ["dim"],
+			separator: ["dim"],
+		},
 	},
 	warn: {
 		level: ["bgYellow", "black", "bold"],
 		message: ["yellow"],
 		separator: ["yellow"],
+		context: {
+			key: ["dim"],
+			value: ["dim"],
+			separator: ["dim"],
+		},
 	},
 	error: {
 		level: ["bgRed", "white", "bold"],
 		message: ["red"],
 		separator: ["red"],
+		context: {
+			key: ["dim"],
+			value: ["dim"],
+			separator: ["dim"],
+		},
 	},
 	fatal: {
 		level: ["bgMagenta", "white", "bold"],
 		message: ["magenta", "bold"],
 		separator: ["magenta"],
+		context: {
+			key: ["dim"],
+			value: ["dim"],
+			separator: ["dim"],
+		},
 	},
 	debug: {
 		level: ["bgGray", "white", "bold"],
 		message: ["gray", "dim"],
 		separator: ["gray"],
+		context: {
+			key: ["dim"],
+			value: ["dim"],
+			separator: ["dim"],
+		},
 	},
 };
 
-/** Renders a log entry with colors associated with its severity. */
-function pretty(data: LogData): string {
-	const colors = logColors[data.level];
-	const level = styleText(colors.level, `[${data.level.toUpperCase()}]`);
-	const separator = styleText(colors.separator, `: `);
-	const message = styleText(colors.message, data.message);
+export type LogColorOverrides = {
+	[level in LogLevel]?: Partial<Omit<LogColors[level], "context">> & {
+		context?: Partial<LogColors[level]["context"]>;
+	};
+};
 
-	return `${level}${separator}${message}`;
+export type CustomFormatterOptions = {
+	/** Per-level color overrides for the pretty formatter. */
+	pretty?: LogColorOverrides;
+};
+
+/** Creates a pretty formatter with per-level color overrides. */
+function custom({
+	pretty: prettyCustom = {},
+}: CustomFormatterOptions = {}): Formatter {
+	return (data, context) => {
+		const defaults = defaultLogColors[data.level];
+		const overrides = prettyCustom[data.level];
+		const colors = {
+			...defaults,
+			...overrides,
+			context: {
+				...defaults.context,
+				...overrides?.context,
+			},
+		};
+
+		return formatPretty(data, context, {
+			...defaultLogColors,
+			[data.level]: colors,
+		});
+	};
+}
+
+function appendContext(base: string, context: string[]): string {
+	return context.length > 0 ? `${base} ${context.join(" ")}` : base;
+}
+
+/** Renders a log entry with colors associated with its severity. */
+function formatPretty(
+	data: LogData,
+	context?: LogContext,
+	logColors: LogColors = defaultLogColors,
+): string {
+	const format: string[] = [];
+	const colors = logColors[data.level];
+
+	format.push(styleText(colors.level, `[${data.level.toUpperCase()}]`));
+	format.push(styleText(colors.separator, `: `));
+	format.push(styleText(colors.message, data.message));
+
+	const contextFormat: string[] = [];
+
+	for (const [key, value] of Object.entries(context ?? {})) {
+		contextFormat.push(
+			`${styleText(colors.context.key, key)}${styleText(colors.context.separator, "=")}${styleText(colors.context.value, value)}`,
+		);
+	}
+
+	return appendContext(format.join(""), contextFormat);
 }
 
 /** Creates a synchronous, append-only file transport. */
@@ -125,34 +219,48 @@ function file({
 	eol = "\n",
 }: FileTransportOptions): Transport {
 	return (data: LogData, formatted: string) => {
-		const output = formatter ? formatter(data) : formatted;
+		const output = formatter ? formatter(data, data.context) : formatted;
 		appendFileSync(filename, output + eol, "utf-8");
 	};
 }
 
 function levels(formatter: Formatter, transports: Transport[]): Logger {
-	function buildLogData(level: LogLevel, message: string): LogData {
+	function buildLogData(
+		level: LogLevel,
+		message: string,
+		context?: LogContext,
+	): LogData {
 		return {
 			level,
 			message,
 			timestamp: new Date().toISOString(),
+			...(context === undefined ? {} : { context }),
 		};
 	}
 
-	async function handler(level: LogLevel, message: string) {
-		const log = buildLogData(level, message);
-		const formatted = formatter(log);
+	async function handler(
+		level: LogLevel,
+		message: string,
+		context?: LogContext,
+	) {
+		const log = buildLogData(level, message, context);
+		const formatted = formatter(log, context);
 		for (const transport of transports) {
 			await transport(log, formatted);
 		}
 	}
 
 	return {
-		info: (message: string) => handler("info", message),
-		warn: (message: string) => handler("warn", message),
-		error: (message: string) => handler("error", message),
-		fatal: (message: string) => handler("fatal", message),
-		debug: (message: string) => handler("debug", message),
+		info: (message: string, context?: LogContext) =>
+			handler("info", message, context),
+		warn: (message: string, context?: LogContext) =>
+			handler("warn", message, context),
+		error: (message: string, context?: LogContext) =>
+			handler("error", message, context),
+		fatal: (message: string, context?: LogContext) =>
+			handler("fatal", message, context),
+		debug: (message: string, context?: LogContext) =>
+			handler("debug", message, context),
 	};
 }
 
@@ -162,7 +270,10 @@ function levels(formatter: Formatter, transports: Transport[]): Logger {
  * Every method resolves after all transports finish or rejects when a
  * transport fails.
  */
-export type Logger = Record<LogLevel, (message: string) => Promise<void>>;
+export type Logger = Record<
+	LogLevel,
+	(message: string, context?: LogContext) => Promise<void>
+>;
 
 /** Options used to create a logger instance. */
 export type CreateLoggerOptions = {
