@@ -1,7 +1,7 @@
-// import { describe, expect, test } from "bun:test";
-// import { createLogger, format, type Transport } from "./index";
-
 import { describe, expect, test } from "bun:test";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import * as bea from "./index";
 
 describe("structured context", () => {
@@ -47,6 +47,24 @@ describe("structured context", () => {
 		expect(output).toContain("key");
 		expect(output).toContain("user:42");
 	});
+
+	test("serializes rich values and circular references safely", () => {
+		const circular: Record<string, bea.LogValue> = {};
+		circular.self = circular;
+		const error = new Error("boom");
+		const data: bea.LogData = {
+			level: "error",
+			message: "failed",
+			timestamp: "2026-08-17T00:00:00.000Z",
+			context: { circular, error, date: new Date("2026-08-17T00:00:00.000Z") },
+		};
+
+		const parsed = JSON.parse(bea.format.json(data) as string);
+		expect(parsed.context.circular.self).toBe("[Circular]");
+		expect(parsed.context.error.message).toBe("boom");
+		expect(parsed.context.date).toBe("2026-08-17T00:00:00.000Z");
+		expect(bea.format.simple(data)).toContain('circular={"self":"[Circular]"}');
+	});
 });
 
 describe("asynchronous transports", () => {
@@ -88,6 +106,44 @@ describe("asynchronous transports", () => {
 		const logger = bea.createLogger({ transport: [failing, later] });
 
 		expect(logger.error("Unavailable")).rejects.toBe(failure);
-		expect(events).toEqual([])
+		expect(events).toEqual([]);
+	});
+
+	test("awaits asynchronous formatters before transport", async () => {
+		const entries: string[] = [];
+		const logger = bea.createLogger({
+			formatter: async (data) => {
+				await Promise.resolve();
+				return `async:${data.message}`;
+			},
+			transport: (_data, formatted) => {
+				entries.push(formatted);
+			},
+		});
+
+		await logger.info("ready");
+		expect(entries).toEqual(["async:ready"]);
+	});
+});
+
+describe("file transport", () => {
+	test("awaits append and supports a transport-specific formatter", async () => {
+		const directory = await mkdtemp(join(tmpdir(), "bea-logger-"));
+		const filename = join(directory, "app.log");
+		try {
+			const logger = bea.createLogger({
+				formatter: bea.format.simple,
+				transport: bea.transports.file({
+					filename,
+					eol: "\r\n",
+					formatter: async (data) => JSON.stringify({ message: data.message }),
+				}),
+			});
+
+			await logger.info("saved");
+			expect(await readFile(filename, "utf8")).toBe('{"message":"saved"}\r\n');
+		} finally {
+			await rm(directory, { recursive: true, force: true });
+		}
 	});
 });
