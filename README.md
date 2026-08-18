@@ -8,8 +8,9 @@
 
 > A small, flexible and transport-agnostic logger for TypeScript.
 
-Bea keeps logging simple: a formatter decides how a log looks, while one or
-more transports decide where it goes.
+Bea keeps logging simple: `Logger` gives you a consistent starting point, a
+formatter decides how a log looks, while one or more transports decide where
+it goes.
 
 > [!IMPORTANT]
 > This package replaces [`@rickferrdev/bea-logger`](https://www.npmjs.com/package/@rickferrdev/bea-logger).
@@ -22,6 +23,7 @@ more transports decide where it goes.
   - [📦 Install](#-install)
     - [🌱 Migrating from the old package](#-migrating-from-the-old-package)
   - [🚀 Quick start](#-quick-start)
+    - [🧱 Logger API](#-logger-api)
     - [⏳ Using logger methods with or without `await`](#-using-logger-methods-with-or-without-await)
   - [🎨 Choose a format](#-choose-a-format)
   - [🧩 Add structured context](#-add-structured-context)
@@ -65,7 +67,7 @@ npm install @rickferrdevelop/bea-logger
 ```ts
 import * as bea from "@rickferrdevelop/bea-logger";
 
-const logger = bea.createLogger({
+const logger = bea.Logger({
   transport: bea.transports.console,
 });
 
@@ -80,6 +82,52 @@ await logger.debug("Cache miss for user:42");
 [INFO]: Server started
 [WARN]: Response is taking longer than expected
 [ERROR]: Could not connect to the database
+```
+
+### 🧱 Logger API
+
+`Logger` is the recommended way to create and manage logger instances. It
+provides the complete logger API and keeps the setup close to the instance
+that will be used by the application.
+
+```ts
+import { Logger, format, transports } from "@rickferrdevelop/bea-logger";
+
+const logger = new Logger({
+  formatter: format.pretty,
+  transport: transports.console,
+});
+
+await logger.info("Server started");
+await logger.warn("Response is taking longer than expected");
+await logger.error("Could not connect to the database");
+```
+
+The constructor accepts the same options as `createLogger()`:
+
+- `formatter`: formatter used for every entry; defaults to `format.pretty`.
+- `transport`: one transport or an array of transports; defaults to
+  `transports.console`.
+- `transportFailure`: `"throw"` or `"continue"`; defaults to `"throw"`.
+- `onTransportError`: synchronous or asynchronous callback invoked when a
+  transport fails.
+
+Instances expose `info`, `warn`, `error`, `fatal` and `debug`. Every method
+accepts `(message, context?)` and returns `Promise<void>`.
+
+If you prefer a factory-based setup, `createLogger()` remains available and
+accepts the same configuration:
+
+```ts
+import * as bea from "@rickferrdevelop/bea-logger"
+
+const logger = new bea.Logger({
+  // ...configs
+});
+// or
+const logger = bea.createLogger({
+  // ...configs
+});
 ```
 
 ### ⏳ Using logger methods with or without `await`
@@ -122,7 +170,7 @@ Bea includes concise, pretty and timestamped formats:
 ```ts
 import * as bea from "@rickferrdevelop/bea-logger";
 
-const logger = bea.createLogger({
+const logger = new bea.Logger({
   formatter: bea.format.verbose,
   transport: bea.transports.console,
 });
@@ -167,7 +215,7 @@ Use `format.custom` to override any pretty-format color while retaining the
 defaults for all unspecified levels and fields:
 
 ```ts
-const logger = bea.createLogger({
+const logger = new bea.Logger({
   formatter: bea.format.custom({
     pretty: {
       debug: {
@@ -183,7 +231,7 @@ const logger = bea.createLogger({
 The file transport appends one entry at a time and can use its own formatter:
 
 ```ts
-const logger = bea.createLogger({
+const logger = new bea.Logger({
   transport: [
     bea.transports.console,
     bea.transports.file({
@@ -263,7 +311,7 @@ const remote: bea.Transport = async (data, formatted) => {
   }
 };
 
-const logger = bea.createLogger({ transport: remote });
+const logger = new bea.Logger({ transport: remote });
 await logger.info("Delivered remotely");
 ```
 
@@ -285,7 +333,7 @@ To observe failures and allow the remaining transports to run, use
 `transportFailure: "continue"` with `onTransportError`:
 
 ```ts
-const logger = bea.createLogger({
+const logger = new bea.Logger({
   transport: [remote, bea.transports.console],
   transportFailure: "continue",
   onTransportError: async ({ error, transportIndex, data }) => {
@@ -310,7 +358,7 @@ const resilientRemote = bea.transports.fallback({
   },
 });
 
-const logger = bea.createLogger({ transport: resilientRemote });
+const logger = new bea.Logger({ transport: resilientRemote });
 ```
 
 The fallback and its optional error callback are both awaited. If either one

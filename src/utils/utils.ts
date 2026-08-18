@@ -1,4 +1,4 @@
-import type { LogValue } from "./types";
+import type { LogValue } from "../types";
 
 export function appendContext(base: string, context: string[]): string {
 	return context.length > 0 ? `${base} ${context.join(" ")}` : base;

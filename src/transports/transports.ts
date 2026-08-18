@@ -4,7 +4,7 @@ import type {
 	FileTransportOptions,
 	LogData,
 	Transport,
-} from "./types";
+} from "../types";
 
 export default {
 	console: _console,

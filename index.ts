@@ -1,20 +1,20 @@
-import type { CustomFormatterOptions } from "./src/colors";
-import formatters from "./src/formatters";
-import createHandler from "./src/handlers";
-import builtInTransports from "./src/transports";
+import type { CustomFormatterOptions } from "./src/colors/colors";
+import formatters from "./src/formatters/formatters";
+import LoggerClass from "./src/Logger";
+import builtInTransports from "./src/transports/transports";
 import type {
 	CreateLoggerOptions,
 	FallbackTransportOptions,
 	FileTransportOptions,
 	Formatter,
-	Logger,
+	Logger as LoggerContract,
 	Transport,
 } from "./src/types";
 
 export type {
 	CustomFormatterOptions,
 	LogColorOverrides,
-} from "./src/colors";
+} from "./src/colors/colors";
 export type {
 	CreateLoggerOptions,
 	FallbackTransportOptions,
@@ -22,13 +22,18 @@ export type {
 	Formatter,
 	LogContext,
 	LogData,
-	Logger,
 	LogLevel,
 	LogValue,
 	Transport,
 	TransportErrorContext,
+	TransportErrorHandler,
 	TransportFailure,
 } from "./src/types";
+/** Methods exposed by loggers. Compatible with the `Logger` type from v2.1.0. */
+export interface Logger extends LoggerContract {}
+
+/** Logger constructor. The `Logger` type remains compatible with v2.1.0. */
+export const Logger = LoggerClass;
 
 /** Built-in log formatters. */
 export const format: Readonly<{
@@ -53,10 +58,9 @@ export function createLogger({
 	onTransportError = () => {},
 	transportFailure = "throw",
 }: CreateLoggerOptions = {}): Logger {
-	const selected = Array.isArray(transport) ? [...transport] : [transport];
-	return createHandler({
+	return new LoggerClass({
 		formatter,
-		transports: selected,
+		transport,
 		onTransportError,
 		transportFailure,
 	});
