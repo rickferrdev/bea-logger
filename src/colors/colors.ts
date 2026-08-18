@@ -1,5 +1,5 @@
 import type { InspectColor } from "node:util";
-import type { LogLevel } from "./types";
+import type { LogLevel } from "../types";
 
 export type PaletteColors = Record<
 	LogLevel,

@@ -4,6 +4,32 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as bea from "./index";
 
+test("exports the Logger class", async () => {
+	const entries: string[] = [];
+	const logger = new bea.Logger({
+		formatter: bea.format.simple,
+		transport: (_data, formatted) => {
+			entries.push(formatted);
+		},
+	});
+
+	await logger.info("Ready");
+	expect(entries).toEqual(["info: Ready"]);
+});
+
+test("keeps the v2.1 Logger type structurally compatible", () => {
+	const log = async () => {};
+	const logger: bea.Logger = {
+		info: log,
+		warn: log,
+		error: log,
+		fatal: log,
+		debug: log,
+	};
+
+	expect(logger.info).toBe(log);
+});
+
 describe("structured context", () => {
 	test("preserves formatter output when context is omitted", () => {
 		const data: bea.LogData = {

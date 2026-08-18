@@ -4,9 +4,13 @@ import {
 	classic,
 	type LogColorOverrides,
 	type PaletteColors,
-} from "./colors";
-import type { Formatter, LogContext, LogData } from "./types";
-import { appendContext, formatLogValue, stringifyLogData } from "./utils";
+} from "../colors/colors";
+import type { Formatter, LogContext, LogData } from "../types";
+import {
+	appendContext,
+	formatLogValue,
+	stringifyLogData,
+} from "../utils/utils";
 
 export default {
 	verbose,

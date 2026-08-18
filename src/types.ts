@@ -52,6 +52,10 @@ export type TransportErrorContext = {
 	formatted: string;
 };
 
+export type TransportErrorHandler = (
+	context: TransportErrorContext,
+) => void | Promise<void>;
+
 export type TransportFailure = "throw" | "continue";
 
 export type FallbackTransportOptions = {
@@ -63,13 +67,13 @@ export type FallbackTransportOptions = {
 export type CreateLoggerOptions = {
 	formatter?: Formatter;
 	transport?: Transport | readonly Transport[];
-	onTransportError?: (context: TransportErrorContext) => void | Promise<void>;
+	onTransportError?: TransportErrorHandler;
 	transportFailure?: TransportFailure;
 };
 
 export type CreateHandlerOptions = {
 	formatter: Formatter;
 	transports: Transport[];
-	onTransportError: (context: TransportErrorContext) => void | Promise<void>;
+	onTransportError: TransportErrorHandler;
 	transportFailure: TransportFailure;
 };
