@@ -1,7 +1,7 @@
 import { styleText } from "node:util";
 import {
-	classic,
 	type CustomFormatterOptions,
+	classic,
 	type LogColorOverrides,
 	type PaletteColors,
 } from "./colors";
@@ -30,7 +30,10 @@ function verbose(data: LogData, context = data.context): string {
 }
 
 function simple(data: LogData, context = data.context): string {
-	return appendContext(`${data.level}: ${data.message}`, formatContext(context));
+	return appendContext(
+		`${data.level}: ${data.message}`,
+		formatContext(context),
+	);
 }
 
 function json(data: LogData): string {
@@ -42,29 +45,31 @@ function prettyWithPalette(
 	context: Readonly<LogContext> | undefined,
 	palette: PaletteColors,
 ): string {
-		const format: string[] = [];
-		const colors = palette[data.level];
+	const format: string[] = [];
+	const colors = palette[data.level];
 
-		format.push(styleText(colors.level, `[${data.level.toUpperCase()}]`));
-		format.push(styleText(colors.separator, `: `));
-		format.push(styleText(colors.message, data.message));
+	format.push(styleText(colors.level, `[${data.level.toUpperCase()}]`));
+	format.push(styleText(colors.separator, `: `));
+	format.push(styleText(colors.message, data.message));
 
-		const contextFormat: string[] = [];
+	const contextFormat: string[] = [];
 
-		for (const [key, value] of Object.entries(context ?? {})) {
-			contextFormat.push(
-				`${styleText(colors.context.key, key)}${styleText(colors.context.separator, "=")}${styleText(colors.context.value, formatLogValue(value))}`,
-			);
-		}
+	for (const [key, value] of Object.entries(context ?? {})) {
+		contextFormat.push(
+			`${styleText(colors.context.key, key)}${styleText(colors.context.separator, "=")}${styleText(colors.context.value, formatLogValue(value))}`,
+		);
+	}
 
-		return appendContext(format.join(""), contextFormat);
+	return appendContext(format.join(""), contextFormat);
 }
 
 function pretty(data: LogData, context = data.context): string {
 	return prettyWithPalette(data, context, classic);
 }
 
-function custom({ pretty: overrides = {} }: CustomFormatterOptions = {}): Formatter {
+function custom({
+	pretty: overrides = {},
+}: CustomFormatterOptions = {}): Formatter {
 	return (data, context = data.context) => {
 		const defaults = classic[data.level];
 		const selected = overrides[data.level];
