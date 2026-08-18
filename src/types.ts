@@ -22,6 +22,9 @@ export type LogData = Readonly<{
 
 export type Formatter = (
 	data: LogData,
+	/**
+	 * @deprecated Use `data.context`; this option will be removed in future major versions.
+	 */
 	context?: Readonly<LogContext>,
 ) => string | Promise<string>;
 
@@ -41,7 +44,32 @@ export type FileTransportOptions = {
 	eol?: string;
 };
 
+export type TransportErrorContext = {
+	error: unknown;
+	transport: Transport;
+	transportIndex: number;
+	data: Readonly<LogData>;
+	formatted: string;
+};
+
+export type TransportFailure = "throw" | "continue";
+
+export type FallbackTransportOptions = {
+	transport: Transport;
+	fallback: Transport;
+	onError?: (error: unknown) => void | Promise<void>;
+};
+
 export type CreateLoggerOptions = {
 	formatter?: Formatter;
 	transport?: Transport | readonly Transport[];
+	onTransportError?: (context: TransportErrorContext) => void | Promise<void>;
+	transportFailure?: TransportFailure;
+};
+
+export type CreateHandlerOptions = {
+	formatter: Formatter;
+	transports: Transport[];
+	onTransportError: (context: TransportErrorContext) => void | Promise<void>;
+	transportFailure: TransportFailure;
 };

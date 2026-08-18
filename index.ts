@@ -1,9 +1,10 @@
 import type { CustomFormatterOptions } from "./src/colors";
 import formatters from "./src/formatters";
-import levels from "./src/levels";
+import createHandler from "./src/handlers";
 import builtInTransports from "./src/transports";
 import type {
 	CreateLoggerOptions,
+	FallbackTransportOptions,
 	FileTransportOptions,
 	Formatter,
 	Logger,
@@ -16,6 +17,7 @@ export type {
 } from "./src/colors";
 export type {
 	CreateLoggerOptions,
+	FallbackTransportOptions,
 	FileTransportOptions,
 	Formatter,
 	LogContext,
@@ -24,6 +26,8 @@ export type {
 	LogLevel,
 	LogValue,
 	Transport,
+	TransportErrorContext,
+	TransportFailure,
 } from "./src/types";
 
 /** Built-in log formatters. */
@@ -39,13 +43,21 @@ export const format: Readonly<{
 export const transports: Readonly<{
 	console: Transport;
 	file: (options: FileTransportOptions) => Transport;
+	fallback: (options: FallbackTransportOptions) => Transport;
 }> = builtInTransports;
 
 /** Creates a logger that dispatches entries to its transports in order. */
 export function createLogger({
 	transport = transports.console,
 	formatter = format.pretty,
+	onTransportError = () => {},
+	transportFailure = "throw",
 }: CreateLoggerOptions = {}): Logger {
 	const selected = Array.isArray(transport) ? [...transport] : [transport];
-	return levels(formatter, selected);
+	return createHandler({
+		formatter,
+		transports: selected,
+		onTransportError,
+		transportFailure,
+	});
 }

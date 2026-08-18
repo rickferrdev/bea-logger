@@ -7,7 +7,8 @@ export function appendContext(base: string, context: string[]): string {
 export function formatLogValue(value: LogValue): string {
 	if (typeof value === "string") return value;
 	if (value instanceof Date) return value.toISOString();
-	if (value instanceof Error) return value.stack ?? `${value.name}: ${value.message}`;
+	if (value instanceof Error)
+		return value.stack ?? `${value.name}: ${value.message}`;
 	if (value === undefined) return "undefined";
 	if (value === null || typeof value !== "object") return String(value);
 	try {

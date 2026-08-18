@@ -17,7 +17,8 @@ describe("structured context", () => {
 	});
 
 	test("passes context to formatters and transports", async () => {
-		const entries: Array<{ data: Readonly<bea.LogData>; formatted: string }> = [];
+		const entries: Array<{ data: Readonly<bea.LogData>; formatted: string }> =
+			[];
 		const logger = bea.createLogger({
 			formatter: bea.format.simple,
 			transport: (data, formatted) => {
@@ -107,6 +108,56 @@ describe("asynchronous transports", () => {
 
 		expect(logger.error("Unavailable")).rejects.toBe(failure);
 		expect(events).toEqual([]);
+	});
+
+	test("reports a transport error and continues when configured", async () => {
+		const failure = new Error("delivery failed");
+		const events: string[] = [];
+		const logger = bea.createLogger({
+			formatter: bea.format.simple,
+			transport: [
+				async () => {
+					throw failure;
+				},
+				() => {
+					events.push("fallback");
+				},
+			],
+			transportFailure: "continue",
+			onTransportError: async ({ error, transportIndex, formatted }) => {
+				await Promise.resolve();
+				expect(error).toBe(failure);
+				expect(transportIndex).toBe(0);
+				expect(formatted).toBe("error: Unavailable");
+				events.push("reported");
+			},
+		});
+
+		await logger.error("Unavailable");
+		expect(events).toEqual(["reported", "fallback"]);
+	});
+
+	test("uses a fallback transport after preserving the original error", async () => {
+		const failure = "offline";
+		const events: unknown[] = [];
+		const logger = bea.createLogger({
+			formatter: bea.format.simple,
+			transport: bea.transports.fallback({
+				transport: async () => {
+					throw failure;
+				},
+				onError: async (error) => {
+					await Promise.resolve();
+					events.push(error);
+				},
+				fallback: (_data, formatted) => {
+					events.push(formatted);
+				},
+			}),
+		});
+
+		await logger.warn("Retrying");
+		expect(events).toEqual([failure, "warn: Retrying"]);
 	});
 
 	test("awaits asynchronous formatters before transport", async () => {

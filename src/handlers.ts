@@ -1,16 +1,17 @@
 import type {
-	Formatter,
+	CreateHandlerOptions,
 	LogContext,
 	LogData,
 	Logger,
 	LogLevel,
-	Transport,
 } from "./types";
 
-export default function levels(
-	formatter: Formatter,
-	transports: Transport[],
-): Logger {
+export default function createHandler({
+	formatter,
+	onTransportError,
+	transports,
+	transportFailure,
+}: CreateHandlerOptions): Logger {
 	function buildLogData(
 		level: LogLevel,
 		message: string,
@@ -29,8 +30,22 @@ export default function levels(
 		const data = buildLogData(level, message, timestamp, context);
 		const result = formatter(data, data.context);
 		const formatted = typeof result === "string" ? result : await result;
-		for (const transport of transports) {
-			await transport(data, formatted);
+		for (const [transportIndex, transport] of transports.entries()) {
+			try {
+				await transport(data, formatted);
+			} catch (error) {
+				await onTransportError({
+					data,
+					error,
+					formatted,
+					transport,
+					transportIndex,
+				});
+
+				if (transportFailure === "throw") {
+					throw error;
+				}
+			}
 		}
 	}
 
