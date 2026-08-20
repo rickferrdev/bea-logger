@@ -1,3 +1,5 @@
+import type { palettes } from "./colors/colors";
+
 /** Values accepted as structured log context. */
 export type LogValue =
 	| string
@@ -19,6 +21,10 @@ export type LogData = Readonly<{
 	timestamp: string;
 	context?: Readonly<LogContext>;
 }>;
+
+export type PrettyFormatterOptions = {
+	palette?: keyof typeof palettes;
+};
 
 export type Formatter = (
 	data: LogData,

@@ -1,4 +1,5 @@
 import type { CustomFormatterOptions } from "./src/colors/colors";
+import type { PrettyFormatter } from "./src/formatters/formatters";
 import formatters from "./src/formatters/formatters";
 import LoggerClass from "./src/Logger";
 import builtInTransports from "./src/transports/transports";
@@ -24,6 +25,7 @@ export type {
 	LogData,
 	LogLevel,
 	LogValue,
+	PrettyFormatterOptions,
 	Transport,
 	TransportErrorContext,
 	TransportErrorHandler,
@@ -38,7 +40,7 @@ export const Logger = LoggerClass;
 /** Built-in log formatters. */
 export const format: Readonly<{
 	custom: (options?: CustomFormatterOptions) => Formatter;
-	pretty: Formatter;
+	pretty: PrettyFormatter;
 	verbose: Formatter;
 	simple: Formatter;
 	json: Formatter;

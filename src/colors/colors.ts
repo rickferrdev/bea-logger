@@ -5,6 +5,7 @@ export type PaletteColors = Record<
 	LogLevel,
 	{
 		level: InspectColor[];
+		brackets: InspectColor[];
 		message: InspectColor[];
 		separator: InspectColor[];
 		context: {
@@ -25,9 +26,10 @@ export type CustomFormatterOptions = { pretty?: LogColorOverrides };
 
 export const classic: PaletteColors = {
 	info: {
-		level: ["bgBlue", "white", "bold"],
-		message: ["white"],
-		separator: ["blue"],
+		level: ["blue", "bold"],
+		brackets: ["dim"],
+		message: ["blue"],
+		separator: ["dim"],
 		context: {
 			key: ["dim"],
 			value: ["dim"],
@@ -35,9 +37,10 @@ export const classic: PaletteColors = {
 		},
 	},
 	warn: {
-		level: ["bgYellow", "black", "bold"],
+		level: ["yellow", "bold"],
+		brackets: ["dim"],
 		message: ["yellow"],
-		separator: ["yellow"],
+		separator: ["dim"],
 		context: {
 			key: ["dim"],
 			value: ["dim"],
@@ -45,9 +48,10 @@ export const classic: PaletteColors = {
 		},
 	},
 	error: {
-		level: ["bgRed", "white", "bold"],
+		level: ["red", "bold"],
+		brackets: ["dim"],
 		message: ["red"],
-		separator: ["red"],
+		separator: ["dim"],
 		context: {
 			key: ["dim"],
 			value: ["dim"],
@@ -55,9 +59,10 @@ export const classic: PaletteColors = {
 		},
 	},
 	fatal: {
-		level: ["bgMagenta", "white", "bold"],
-		message: ["magenta", "bold"],
-		separator: ["magenta"],
+		level: ["magenta", "bold"],
+		brackets: ["dim"],
+		message: ["magenta"],
+		separator: ["dim"],
 		context: {
 			key: ["dim"],
 			value: ["dim"],
@@ -65,13 +70,18 @@ export const classic: PaletteColors = {
 		},
 	},
 	debug: {
-		level: ["bgGray", "white", "bold"],
-		message: ["gray", "dim"],
-		separator: ["gray"],
+		level: ["dim", "bold"],
+		brackets: ["dim"],
+		message: ["gray"],
+		separator: ["dim"],
 		context: {
 			key: ["dim"],
 			value: ["dim"],
 			separator: ["dim"],
 		},
 	},
+};
+
+export const palettes = {
+	classic,
 };
