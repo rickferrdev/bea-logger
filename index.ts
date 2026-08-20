@@ -9,6 +9,7 @@ import type {
 	FileTransportOptions,
 	Formatter,
 	Logger as LoggerContract,
+	StreamTransportOptions,
 	Transport,
 } from "./src/types";
 
@@ -26,6 +27,7 @@ export type {
 	LogLevel,
 	LogValue,
 	PrettyFormatterOptions,
+	StreamTransportOptions,
 	Transport,
 	TransportErrorContext,
 	TransportErrorHandler,
@@ -51,6 +53,7 @@ export const transports: Readonly<{
 	console: Transport;
 	file: (options: FileTransportOptions) => Transport;
 	fallback: (options: FallbackTransportOptions) => Transport;
+	stream: (options: StreamTransportOptions) => Transport;
 }> = builtInTransports;
 
 /** Creates a logger that dispatches entries to its transports in order. */

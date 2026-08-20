@@ -1,3 +1,4 @@
+import type { Writable } from "node:stream";
 import type { palettes } from "./colors/colors";
 
 /** Values accepted as structured log context. */
@@ -78,6 +79,11 @@ export type CreateLoggerOptions = {
 	onTransportError?: TransportErrorHandler;
 	transportFailure?: TransportFailure;
 	context?: LogContext;
+};
+
+export type StreamTransportOptions = {
+	stream: Writable;
+	eol?: string;
 };
 
 export type CreateHandlerOptions = {
