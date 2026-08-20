@@ -27,6 +27,7 @@ destino.
 - [🎨 Escolha um formato](#-escolha-um-formato)
 - [🧩 Adicione contexto estruturado](#-adicione-contexto-estruturado)
 - [📝 Grave logs em arquivo](#-grave-logs-em-arquivo)
+- [🌊 Grave logs em uma stream](#-grave-logs-em-uma-stream)
 - [🛠️ Personalização](#️-personalização)
 - [📄 Licença](#-licença)
 
@@ -180,6 +181,28 @@ const logger = new bea.Logger({
 O diretório de destino deve existir. As gravações são assíncronas e
 `await logger.info(...)` aguarda a conclusão do append.
 
+## 🌊 Grave logs em uma stream
+
+O transporte de stream escreve entradas formatadas em qualquer `Writable` do
+Node.js, como `process.stdout`, uma stream de arquivo, um socket ou uma stream de
+compactação:
+
+```ts
+const logger = new bea.Logger({
+  formatter: bea.format.simple,
+  transport: bea.transports.stream({
+    stream: process.stdout,
+    eol: "\n", // padrão
+  }),
+});
+
+await logger.info("Escrito no stdout");
+```
+
+Cada chamada do logger aguarda o callback de escrita. Assim, erros de escrita
+seguem o comportamento configurado em `transportFailure`. O transporte não
+fecha a stream; o código que a criou continua responsável pelo ciclo de vida.
+
 ## 🛠️ Personalização
 
 Um formatador recebe os dados estruturados e retorna uma string ou uma promise:
@@ -214,4 +237,3 @@ Para continuar após uma falha, use `transportFailure: "continue"` e
 ## 📄 Licença
 
 [MIT](LICENSE) &copy; 2026 [Henrick Ferreira Saraiva](https://github.com/rickferrdev)
-

@@ -29,6 +29,7 @@ it goes.
   - [🧩 Add structured context](#-add-structured-context)
     - [🌈 Customize pretty-format colors](#-customize-pretty-format-colors)
   - [📝 Write logs to a file](#-write-logs-to-a-file)
+  - [🌊 Write logs to a stream](#-write-logs-to-a-stream)
   - [🛠️ Make it yours](#️-make-it-yours)
     - [🌐 Asynchronous transports](#-asynchronous-transports)
     - [🛟 Handling transport failures](#-handling-transport-failures)
@@ -247,6 +248,28 @@ await logger.info("Saved to the console and file");
 The destination directory must already exist. File writes are asynchronous and
 `await logger.info(...)` waits until the append completes. Transports are
 ordered within one log call; separate calls made without `await` may overlap.
+
+## 🌊 Write logs to a stream
+
+The stream transport writes formatted entries to any Node.js `Writable`, such
+as `process.stdout`, a file stream, a socket, or a compression stream:
+
+```ts
+const logger = new bea.Logger({
+  formatter: bea.format.simple,
+  transport: bea.transports.stream({
+    stream: process.stdout,
+    eol: "\n", // default
+  }),
+});
+
+await logger.info("Written to stdout");
+```
+
+Each logger call waits for the write callback. Write errors are therefore
+handled by the logger's configured `transportFailure` behavior. The transport
+does not close the stream; the code that created it remains responsible for its
+lifecycle.
 
 ## 🛠️ Make it yours
 
