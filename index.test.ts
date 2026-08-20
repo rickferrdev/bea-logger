@@ -17,7 +17,7 @@ test("exports the Logger class", async () => {
 	expect(entries).toEqual(["info: Ready"]);
 });
 
-test("keeps the v2.1 Logger type structurally compatible", () => {
+test("exposes the complete Logger contract", () => {
 	const log = async () => {};
 	const logger: bea.Logger = {
 		info: log,
@@ -25,6 +25,7 @@ test("keeps the v2.1 Logger type structurally compatible", () => {
 		error: log,
 		fatal: log,
 		debug: log,
+		child: () => logger,
 	};
 
 	expect(logger.info).toBe(log);

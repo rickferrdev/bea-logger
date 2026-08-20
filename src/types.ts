@@ -42,7 +42,9 @@ export type Transport = (
 export type Logger = Record<
 	LogLevel,
 	(message: string, context?: LogContext) => Promise<void>
->;
+> & {
+	child(context?: LogContext): Logger;
+};
 
 export type FileTransportOptions = {
 	filename: string;
@@ -75,6 +77,7 @@ export type CreateLoggerOptions = {
 	transport?: Transport | readonly Transport[];
 	onTransportError?: TransportErrorHandler;
 	transportFailure?: TransportFailure;
+	context?: LogContext;
 };
 
 export type CreateHandlerOptions = {

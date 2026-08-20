@@ -17,10 +17,12 @@ export default class Logger implements LoggerContract {
 		transport = transports.console,
 		transportFailure = "throw",
 		onTransportError = () => {},
+		context = {},
 	}: CreateLoggerOptions = {}) {
 		this.opts.formatter = formatter;
 		this.opts.transport = transport;
 		this.opts.transportFailure = transportFailure;
+		this.opts.context = context;
 		this.opts.onTransportError = onTransportError;
 		this.handler = new Handler({
 			formatter: this.opts.formatter,
@@ -31,7 +33,7 @@ export default class Logger implements LoggerContract {
 	}
 
 	info(message: string, context?: LogContext): Promise<void> {
-		return this.log("info", message, context);
+		return this.log("info", message, context ?? this.opts.context);
 	}
 
 	warn(message: string, context?: LogContext): Promise<void> {
@@ -55,7 +57,20 @@ export default class Logger implements LoggerContract {
 			level,
 			message,
 			timestamp: new Date().toISOString(),
-			context,
+			context: {
+				...this.opts.context,
+				...context,
+			},
+		});
+	}
+
+	child(context?: LogContext): Logger {
+		return new Logger({
+			...this.opts,
+			context: {
+				...this.opts.context,
+				...context,
+			},
 		});
 	}
 }

@@ -59,11 +59,13 @@ export function createLogger({
 	formatter = format.pretty,
 	onTransportError = () => {},
 	transportFailure = "throw",
+	context = {},
 }: CreateLoggerOptions = {}): Logger {
 	return new LoggerClass({
 		formatter,
 		transport,
 		onTransportError,
 		transportFailure,
+		context,
 	});
 }
