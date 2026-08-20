@@ -3,6 +3,7 @@ import type {
 	FallbackTransportOptions,
 	FileTransportOptions,
 	LogData,
+	StreamTransportOptions,
 	Transport,
 } from "../types";
 
@@ -10,6 +11,7 @@ export default {
 	console: _console,
 	file,
 	fallback,
+	stream,
 };
 
 function _console(_data: Readonly<LogData>, formatted: string): void {
@@ -42,4 +44,15 @@ function fallback({
 	};
 }
 
-export type { FileTransportOptions, Transport };
+function stream({ stream, eol = "\n" }: StreamTransportOptions): Transport {
+	return (_, formatted) => {
+		return new Promise<void>((resolve, reject) => {
+			stream.write(formatted + eol, (error) => {
+				if (error) reject(error);
+				else resolve();
+			});
+		});
+	};
+}
+
+export type { FileTransportOptions, StreamTransportOptions, Transport };

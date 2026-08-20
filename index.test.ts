@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { PassThrough, Writable } from "node:stream";
 import * as bea from "./index";
 
 test("exports the Logger class", async () => {
@@ -17,7 +18,7 @@ test("exports the Logger class", async () => {
 	expect(entries).toEqual(["info: Ready"]);
 });
 
-test("keeps the v2.1 Logger type structurally compatible", () => {
+test("exposes the complete Logger contract", () => {
 	const log = async () => {};
 	const logger: bea.Logger = {
 		info: log,
@@ -25,12 +26,27 @@ test("keeps the v2.1 Logger type structurally compatible", () => {
 		error: log,
 		fatal: log,
 		debug: log,
+		child: () => logger,
 	};
 
 	expect(logger.info).toBe(log);
 });
 
 describe("structured context", () => {
+	test("uses pretty directly or as a configured formatter", () => {
+		const data: bea.LogData = {
+			level: "info",
+			message: "Ready",
+			timestamp: "2026-08-16T00:00:00.000Z",
+		};
+
+		const direct = bea.format.pretty(data);
+		const configured = bea.format.pretty({ palette: "classic" })(data);
+
+		expect(direct).toContain("Ready");
+		expect(configured).toBe(direct);
+	});
+
 	test("preserves formatter output when context is omitted", () => {
 		const data: bea.LogData = {
 			level: "info",
@@ -222,5 +238,38 @@ describe("file transport", () => {
 		} finally {
 			await rm(directory, { recursive: true, force: true });
 		}
+	});
+});
+
+describe("stream transport", () => {
+	test("awaits writes and appends the configured line ending", async () => {
+		const output = new PassThrough();
+		let written = "";
+		output.setEncoding("utf8");
+		output.on("data", (chunk: string) => {
+			written += chunk;
+		});
+		const logger = bea.createLogger({
+			formatter: bea.format.simple,
+			transport: bea.transports.stream({ stream: output, eol: "\r\n" }),
+		});
+
+		await logger.info("streamed");
+		expect(written).toBe("info: streamed\r\n");
+	});
+
+	test("propagates write errors", async () => {
+		const failure = new Error("stream unavailable");
+		const output = new Writable({
+			write(_chunk, _encoding, callback) {
+				callback(failure);
+			},
+		});
+		output.on("error", () => {});
+		const logger = bea.createLogger({
+			transport: bea.transports.stream({ stream: output }),
+		});
+
+		await expect(logger.error("failed")).rejects.toBe(failure);
 	});
 });

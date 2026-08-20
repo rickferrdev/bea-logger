@@ -1,3 +1,6 @@
+import type { Writable } from "node:stream";
+import type { palettes } from "./colors/colors";
+
 /** Values accepted as structured log context. */
 export type LogValue =
 	| string
@@ -20,6 +23,10 @@ export type LogData = Readonly<{
 	context?: Readonly<LogContext>;
 }>;
 
+export type PrettyFormatterOptions = {
+	palette?: keyof typeof palettes;
+};
+
 export type Formatter = (
 	data: LogData,
 	/**
@@ -36,7 +43,9 @@ export type Transport = (
 export type Logger = Record<
 	LogLevel,
 	(message: string, context?: LogContext) => Promise<void>
->;
+> & {
+	child(context?: LogContext): Logger;
+};
 
 export type FileTransportOptions = {
 	filename: string;
@@ -69,6 +78,12 @@ export type CreateLoggerOptions = {
 	transport?: Transport | readonly Transport[];
 	onTransportError?: TransportErrorHandler;
 	transportFailure?: TransportFailure;
+	context?: LogContext;
+};
+
+export type StreamTransportOptions = {
+	stream: Writable;
+	eol?: string;
 };
 
 export type CreateHandlerOptions = {

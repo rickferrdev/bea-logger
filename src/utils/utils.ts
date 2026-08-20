@@ -1,7 +1,13 @@
-import type { LogValue } from "../types";
+import type { LogContext, LogValue } from "../types";
 
 export function appendContext(base: string, context: string[]): string {
 	return context.length > 0 ? `${base} ${context.join(" ")}` : base;
+}
+
+export function formatContext(context?: Readonly<LogContext>): string[] {
+	return Object.entries(context ?? {}).map(
+		([key, value]) => `${key}=${formatLogValue(value)}`,
+	);
 }
 
 export function formatLogValue(value: LogValue): string {
@@ -18,11 +24,7 @@ export function formatLogValue(value: LogValue): string {
 	}
 }
 
-export function stringifyLogData(value: unknown): string {
-	return JSON.stringify(value, createJsonReplacer());
-}
-
-function createJsonReplacer(): (key: string, value: unknown) => unknown {
+export function createJsonReplacer(): (key: string, value: unknown) => unknown {
 	const seen = new WeakSet<object>();
 	return (_key, value) => {
 		if (value instanceof Error) {

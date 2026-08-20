@@ -1,4 +1,5 @@
 import type { CustomFormatterOptions } from "./src/colors/colors";
+import type { PrettyFormatter } from "./src/formatters/formatters";
 import formatters from "./src/formatters/formatters";
 import LoggerClass from "./src/Logger";
 import builtInTransports from "./src/transports/transports";
@@ -8,6 +9,7 @@ import type {
 	FileTransportOptions,
 	Formatter,
 	Logger as LoggerContract,
+	StreamTransportOptions,
 	Transport,
 } from "./src/types";
 
@@ -24,6 +26,8 @@ export type {
 	LogData,
 	LogLevel,
 	LogValue,
+	PrettyFormatterOptions,
+	StreamTransportOptions,
 	Transport,
 	TransportErrorContext,
 	TransportErrorHandler,
@@ -38,7 +42,7 @@ export const Logger = LoggerClass;
 /** Built-in log formatters. */
 export const format: Readonly<{
 	custom: (options?: CustomFormatterOptions) => Formatter;
-	pretty: Formatter;
+	pretty: PrettyFormatter;
 	verbose: Formatter;
 	simple: Formatter;
 	json: Formatter;
@@ -49,6 +53,7 @@ export const transports: Readonly<{
 	console: Transport;
 	file: (options: FileTransportOptions) => Transport;
 	fallback: (options: FallbackTransportOptions) => Transport;
+	stream: (options: StreamTransportOptions) => Transport;
 }> = builtInTransports;
 
 /** Creates a logger that dispatches entries to its transports in order. */
@@ -57,11 +62,13 @@ export function createLogger({
 	formatter = format.pretty,
 	onTransportError = () => {},
 	transportFailure = "throw",
+	context = {},
 }: CreateLoggerOptions = {}): Logger {
 	return new LoggerClass({
 		formatter,
 		transport,
 		onTransportError,
 		transportFailure,
+		context,
 	});
 }

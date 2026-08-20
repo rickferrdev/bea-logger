@@ -4,13 +4,23 @@ import {
 	classic,
 	type LogColorOverrides,
 	type PaletteColors,
+	palettes,
 } from "../colors/colors";
-import type { Formatter, LogContext, LogData } from "../types";
+import type {
+	Formatter,
+	LogContext,
+	LogData,
+	PrettyFormatterOptions,
+} from "../types";
 import {
 	appendContext,
+	createJsonReplacer,
+	formatContext,
 	formatLogValue,
-	stringifyLogData,
 } from "../utils/utils";
+
+export type PrettyFormatter = Formatter &
+	((options?: PrettyFormatterOptions) => Formatter);
 
 export default {
 	verbose,
@@ -19,12 +29,6 @@ export default {
 	pretty,
 	custom,
 };
-
-function formatContext(context?: Readonly<LogContext>): string[] {
-	return Object.entries(context ?? {}).map(
-		([key, value]) => `${key}=${formatLogValue(value)}`,
-	);
-}
 
 function verbose(data: LogData, context = data.context): string {
 	return appendContext(
@@ -41,18 +45,20 @@ function simple(data: LogData, context = data.context): string {
 }
 
 function json(data: LogData): string {
-	return stringifyLogData(data);
+	return JSON.stringify(data, createJsonReplacer());
 }
 
-function prettyWithPalette(
+function renderPalette(
 	data: LogData,
 	context: Readonly<LogContext> | undefined,
-	palette: PaletteColors,
+	palette: PaletteColors = classic,
 ): string {
 	const format: string[] = [];
 	const colors = palette[data.level];
 
-	format.push(styleText(colors.level, `[${data.level.toUpperCase()}]`));
+	format.push(styleText(colors.brackets, "["));
+	format.push(styleText(colors.level, `${data.level}`));
+	format.push(styleText(colors.brackets, "]"));
 	format.push(styleText(colors.separator, `: `));
 	format.push(styleText(colors.message, data.message));
 
@@ -67,8 +73,20 @@ function prettyWithPalette(
 	return appendContext(format.join(""), contextFormat);
 }
 
-function pretty(data: LogData, context = data.context): string {
-	return prettyWithPalette(data, context, classic);
+function pretty(data: LogData, context?: Readonly<LogContext>): string;
+function pretty(options?: PrettyFormatterOptions): Formatter;
+function pretty(
+	input: LogData | PrettyFormatterOptions = {},
+	context?: Readonly<LogContext>,
+): string | Formatter {
+	if ("level" in input) {
+		return renderPalette(input, context ?? input.context, palettes.classic);
+	}
+
+	const { palette: name = "classic" } = input;
+
+	return (data: LogData, context = data.context) =>
+		renderPalette(data, context, palettes[name]);
 }
 
 function custom({
@@ -85,7 +103,7 @@ function custom({
 				context: { ...defaults.context, ...selected?.context },
 			},
 		};
-		return prettyWithPalette(data, context, colors);
+		return renderPalette(data, context, colors);
 	};
 }
 
