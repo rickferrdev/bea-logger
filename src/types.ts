@@ -1,5 +1,5 @@
 import type { Writable } from "node:stream";
-import type { palettes } from "./colors/colors";
+import type { PaletteName } from "./colors/colors";
 
 /** Values accepted as structured log context. */
 export type LogValue =
@@ -15,7 +15,6 @@ export type LogValue =
 
 export type LogLevel = "info" | "warn" | "error" | "fatal" | "debug";
 export type LogContext = Record<string, LogValue>;
-
 export type LogData = Readonly<{
 	level: LogLevel;
 	message: string;
@@ -23,8 +22,10 @@ export type LogData = Readonly<{
 	context?: Readonly<LogContext>;
 }>;
 
+export type LogThreshold = LogLevel | "silent";
+
 export type PrettyFormatterOptions = {
-	palette?: keyof typeof palettes;
+	palette?: PaletteName;
 };
 
 export type Formatter = (
@@ -73,17 +74,24 @@ export type FallbackTransportOptions = {
 	onError?: (error: unknown) => void | Promise<void>;
 };
 
+export type StreamTransportOptions = {
+	stream: Writable;
+	eol?: string;
+};
+
+export type RedactOptions = {
+	paths: readonly string[];
+	censor?: string;
+};
+
 export type CreateLoggerOptions = {
 	formatter?: Formatter;
 	transport?: Transport | readonly Transport[];
 	onTransportError?: TransportErrorHandler;
 	transportFailure?: TransportFailure;
 	context?: LogContext;
-};
-
-export type StreamTransportOptions = {
-	stream: Writable;
-	eol?: string;
+	redact?: readonly string[] | RedactOptions;
+	level?: LogThreshold;
 };
 
 export type CreateHandlerOptions = {
@@ -91,4 +99,5 @@ export type CreateHandlerOptions = {
 	transports: Transport[];
 	onTransportError: TransportErrorHandler;
 	transportFailure: TransportFailure;
+	redact: readonly string[] | RedactOptions;
 };

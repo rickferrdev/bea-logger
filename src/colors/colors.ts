@@ -22,8 +22,6 @@ export type LogColorOverrides = {
 	};
 };
 
-export type CustomFormatterOptions = { pretty?: LogColorOverrides };
-
 export const classic: PaletteColors = {
 	info: {
 		level: ["blue", "bold"],
@@ -82,6 +80,75 @@ export const classic: PaletteColors = {
 	},
 };
 
+export const vibrant: PaletteColors = createPalette(
+	{
+		info: "cyan",
+		warn: "yellow",
+		error: "red",
+		fatal: "magenta",
+		debug: "green",
+	},
+	["bold"],
+	["white"],
+);
+
+export const soft: PaletteColors = createPalette(
+	{
+		info: "blue",
+		warn: "yellow",
+		error: "red",
+		fatal: "magenta",
+		debug: "cyan",
+	},
+	["dim"],
+	["gray"],
+);
+
+export const monochrome: PaletteColors = createPalette(
+	{
+		info: "white",
+		warn: "white",
+		error: "white",
+		fatal: "white",
+		debug: "gray",
+	},
+	["bold"],
+	["dim"],
+);
+
 export const palettes = {
 	classic,
+	vibrant,
+	soft,
+	monochrome,
 };
+
+export type PaletteName = keyof typeof palettes;
+
+export type CustomFormatterOptions = {
+	palette?: PaletteName;
+	pretty?: LogColorOverrides;
+};
+
+function createPalette(
+	levels: Record<LogLevel, InspectColor>,
+	levelAccent: InspectColor[],
+	contextColors: InspectColor[],
+): PaletteColors {
+	return Object.fromEntries(
+		Object.entries(levels).map(([level, color]) => [
+			level,
+			{
+				level: [color, ...levelAccent],
+				brackets: ["dim"],
+				message: [color],
+				separator: ["dim"],
+				context: {
+					key: contextColors,
+					value: contextColors,
+					separator: ["dim"],
+				},
+			},
+		]),
+	) as PaletteColors;
+}
