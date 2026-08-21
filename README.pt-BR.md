@@ -26,6 +26,7 @@ destino.
   - [⏳ Usando métodos com ou sem `await`](#-usando-métodos-com-ou-sem-await)
 - [🎨 Escolha um formato](#-escolha-um-formato)
 - [🧩 Adicione contexto estruturado](#-adicione-contexto-estruturado)
+  - [🔒 Oculte campos sensíveis](#-oculte-campos-sensíveis)
 - [📝 Grave logs em arquivo](#-grave-logs-em-arquivo)
 - [🌊 Grave logs em uma stream](#-grave-logs-em-uma-stream)
 - [🛠️ Personalização](#️-personalização)
@@ -36,6 +37,7 @@ destino.
 - 🌸 API pequena, tipada e independente de transporte.
 - 🎨 Formatadores integrados pretty, simple, verbose e JSON.
 - 🧩 Contexto estruturado com serialização segura de erros e referências circulares.
+- 🔒 Redação recursiva de campos sensíveis do contexto.
 - 📝 Transportes para console, arquivo e fallback combinável.
 - 🌐 Formatadores e transportes síncronos ou assíncronos.
 - 🛟 Comportamento configurável em falhas: interromper ou continuar.
@@ -96,6 +98,7 @@ O construtor aceita as mesmas opções de `createLogger()`:
 - `transport`: um transporte ou uma lista; padrão: `transports.console`.
 - `transportFailure`: `"throw"` ou `"continue"`; padrão: `"throw"`.
 - `onTransportError`: callback síncrono ou assíncrono chamado quando um transporte falha.
+- `redact`: nomes de chaves sensíveis ou `{ paths, censor }`; desativado por padrão.
 
 As instâncias expõem `info`, `warn`, `error`, `fatal` e `debug`. Cada método
 aceita `(message, context?)` e retorna `Promise<void>`.
@@ -160,6 +163,30 @@ argumento:
 const formatter: bea.Formatter = (data, context) =>
   `${data.level}: ${data.message} (${context?.requestId ?? "sem requisição"})`;
 ```
+
+### 🔒 Oculte campos sensíveis
+
+Use `redact` para substituir chaves correspondentes em qualquer profundidade
+antes que a entrada chegue aos formatadores, transportes ou callbacks de erro.
+A comparação ignora maiúsculas e minúsculas e não altera o contexto original:
+
+```ts
+const logger = new bea.Logger({
+  redact: {
+    paths: ["password", "token", "authorization"],
+    censor: "***", // padrão: "[REDACTED]"
+  },
+});
+
+await logger.info("Usuário autenticado", {
+  username: "bea",
+  credentials: { token: "secret" },
+});
+```
+
+Nesta versão, os itens de `paths` são nomes de chaves procurados recursivamente,
+e não caminhos separados por pontos. Valores sensíveis devem ficar no contexto
+estruturado, pois textos interpolados na mensagem não são modificados.
 
 ## 📝 Grave logs em arquivo
 
