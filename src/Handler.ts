@@ -1,50 +1,30 @@
-import type {
-	CreateHandlerOptions,
-	Formatter,
-	LogData,
-	Transport,
-	TransportErrorHandler,
-	TransportFailure,
-} from "./types";
+import type { CreateHandlerOptions, LogData } from "./types";
+import { normalizeRedact, redactContext } from "./utils/utils";
 
 export default class Handler {
-	protected formatter: Formatter;
-	protected onTransportError: TransportErrorHandler;
-	protected transportFailure: TransportFailure;
-	protected transports: Transport[];
+	protected redact;
 
-	constructor({
-		formatter,
-		transports,
-		onTransportError,
-		transportFailure,
-	}: CreateHandlerOptions) {
-		this.formatter = formatter;
-		this.onTransportError = onTransportError;
-		this.transportFailure = transportFailure;
-		this.transports = transports;
+	constructor(protected opts: CreateHandlerOptions) {
+		this.redact = normalizeRedact(opts.redact);
 	}
 
-	async register({
-		level,
-		message,
-		timestamp,
-		context,
-	}: LogData): Promise<void> {
+	async register(logData: LogData): Promise<void> {
 		const data: LogData = {
-			level,
-			message,
-			timestamp,
-			...(context === undefined ? {} : { context }),
+			level: logData.level,
+			message: logData.message,
+			timestamp: logData.timestamp,
+			...(logData.context === undefined
+				? {}
+				: { context: redactContext(logData.context, this.redact) }),
 		};
 
-		const result = this.formatter(data, data.context);
+		const result = this.opts.formatter(data, data.context);
 		const formatted = typeof result === "string" ? result : await result;
-		for (const [transportIndex, transport] of this.transports.entries()) {
+		for (const [transportIndex, transport] of this.opts.transports.entries()) {
 			try {
 				await transport(data, formatted);
 			} catch (error) {
-				await this.onTransportError({
+				await this.opts.onTransportError({
 					data,
 					error,
 					formatted,
@@ -52,7 +32,7 @@ export default class Handler {
 					transportIndex,
 				});
 
-				if (this.transportFailure === "throw") {
+				if (this.opts.transportFailure === "throw") {
 					throw error;
 				}
 			}

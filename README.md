@@ -27,6 +27,7 @@ it goes.
     - [⏳ Using logger methods with or without `await`](#-using-logger-methods-with-or-without-await)
   - [🎨 Choose a format](#-choose-a-format)
   - [🧩 Add structured context](#-add-structured-context)
+    - [🔒 Redact sensitive fields](#-redact-sensitive-fields)
     - [🌈 Customize pretty-format colors](#-customize-pretty-format-colors)
   - [📝 Write logs to a file](#-write-logs-to-a-file)
   - [🌊 Write logs to a stream](#-write-logs-to-a-stream)
@@ -40,6 +41,7 @@ it goes.
 - 🌸 Small, typed and transport-agnostic API.
 - 🎨 Built-in pretty, simple, verbose and JSON formatters.
 - 🧩 Structured context with safe error and circular-reference serialization.
+- 🔒 Recursive redaction of sensitive context fields.
 - 📝 Console, file and composable fallback transports.
 - 🌐 Synchronous or asynchronous custom formatters and transports.
 - 🛟 Configurable fail-fast or continue-on-error transport behavior.
@@ -112,6 +114,7 @@ The constructor accepts the same options as `createLogger()`:
 - `transportFailure`: `"throw"` or `"continue"`; defaults to `"throw"`.
 - `onTransportError`: synchronous or asynchronous callback invoked when a
   transport fails.
+- `redact`: sensitive key names or `{ paths, censor }`; disabled by default.
 
 Instances expose `info`, `warn`, `error`, `fatal` and `debug`. Every method
 accepts `(message, context?)` and returns `Promise<void>`.
@@ -209,6 +212,30 @@ second argument:
 const formatter: bea.Formatter = (data, context) =>
   `${data.level}: ${data.message} (${context?.requestId ?? "no request"})`;
 ```
+
+### 🔒 Redact sensitive fields
+
+Use `redact` to replace matching context keys at any nesting level before the
+entry reaches formatters, transports or transport-error handlers. Matching is
+case-insensitive and does not mutate the original context:
+
+```ts
+const logger = new bea.Logger({
+  redact: {
+    paths: ["password", "token", "authorization"],
+    censor: "***", // defaults to "[REDACTED]"
+  },
+});
+
+await logger.info("User authenticated", {
+  username: "bea",
+  credentials: { token: "secret" },
+});
+```
+
+The current `paths` entries are key names matched recursively, rather than dot
+paths. Put sensitive values in structured context instead of interpolating them
+into the message, since message text is not redacted.
 
 ### 🌈 Customize pretty-format colors
 

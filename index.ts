@@ -16,6 +16,7 @@ import type {
 export type {
 	CustomFormatterOptions,
 	LogColorOverrides,
+	PaletteName,
 } from "./src/colors/colors";
 export type {
 	CreateLoggerOptions,
@@ -27,6 +28,7 @@ export type {
 	LogLevel,
 	LogValue,
 	PrettyFormatterOptions,
+	RedactOptions,
 	StreamTransportOptions,
 	Transport,
 	TransportErrorContext,
@@ -63,6 +65,7 @@ export function createLogger({
 	onTransportError = () => {},
 	transportFailure = "throw",
 	context = {},
+	redact = [],
 }: CreateLoggerOptions = {}): Logger {
 	return new LoggerClass({
 		formatter,
@@ -70,5 +73,6 @@ export function createLogger({
 		onTransportError,
 		transportFailure,
 		context,
+		redact,
 	});
 }

@@ -90,13 +90,15 @@ function pretty(
 }
 
 function custom({
+	palette: name = "classic",
 	pretty: overrides = {},
 }: CustomFormatterOptions = {}): Formatter {
 	return (data, context = data.context) => {
-		const defaults = classic[data.level];
+		const palette = palettes[name];
+		const defaults = palette[data.level];
 		const selected = overrides[data.level];
 		const colors: PaletteColors = {
-			...classic,
+			...palette,
 			[data.level]: {
 				...defaults,
 				...selected,
