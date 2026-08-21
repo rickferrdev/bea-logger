@@ -1,12 +1,27 @@
-# 🌸 Bea Logger
+<p align="center">
+  <img src=".github/assets/bea-logger-header.png" alt="Bea Logger — beautiful logging for TypeScript" width="100%">
+</p>
 
-[![npm version](https://img.shields.io/npm/v/%40rickferrdevelop%2Fbea-logger?color=ff69b4&label=npm)](https://www.npmjs.com/package/@rickferrdevelop/bea-logger)
-[![npm downloads](https://img.shields.io/npm/dm/%40rickferrdevelop%2Fbea-logger?color=8b5cf6)](https://www.npmjs.com/package/@rickferrdevelop/bea-logger)
-[![Node.js](https://img.shields.io/node/v/%40rickferrdevelop%2Fbea-logger?color=339933)](package.json)
-[![TypeScript](https://img.shields.io/badge/TypeScript-ready-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-f5c2e7)](LICENSE)
+<h1 align="center">🌸 Bea Logger</h1>
 
-> A small, flexible and transport-agnostic logger for TypeScript.
+<p align="center">
+  <strong>A small, flexible and transport-agnostic logger for TypeScript.</strong>
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/@rickferrdevelop/bea-logger"><img src="https://img.shields.io/npm/v/%40rickferrdevelop%2Fbea-logger?style=flat-square&amp;color=CB3837&amp;logo=npm&amp;logoColor=white&amp;label=npm" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/@rickferrdevelop/bea-logger"><img src="https://img.shields.io/npm/dm/%40rickferrdevelop%2Fbea-logger?style=flat-square&amp;color=8B5CF6&amp;logo=chartdotjs&amp;logoColor=white&amp;label=downloads" alt="npm downloads"></a>
+  <a href="package.json"><img src="https://img.shields.io/node/v/%40rickferrdevelop%2Fbea-logger?style=flat-square&amp;color=5FA04E&amp;logo=nodedotjs&amp;logoColor=white&amp;label=node" alt="Node.js version"></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-ready-3178C6?style=flat-square&amp;logo=typescript&amp;logoColor=white" alt="TypeScript ready"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-EC4899?style=flat-square&amp;logo=opensourceinitiative&amp;logoColor=white" alt="MIT license"></a>
+</p>
+
+<p align="center">
+  <a href="#-quick-start">Quick start</a> ·
+  <a href="https://www.npmjs.com/package/@rickferrdevelop/bea-logger">npm</a> ·
+  <a href="https://github.com/rickferrdev/bea-logger/releases">Releases</a> ·
+  <a href="https://github.com/rickferrdev/bea-logger/issues/new">Report an issue</a>
+</p>
 
 Bea keeps logging simple: `Logger` gives you a consistent starting point, a
 formatter decides how a log looks, while one or more transports decide where
@@ -16,7 +31,10 @@ it goes.
 > This package replaces [`@rickferrdev/bea-logger`](https://www.npmjs.com/package/@rickferrdev/bea-logger).
 > New projects and upgrades should use `@rickferrdevelop/bea-logger`.
 
-## 🌳 Contents
+<details>
+<summary><strong>🌳 Explore the documentation</strong></summary>
+
+## Contents
 
 - 🌸 **Bea Logger**
   - [✨ Features](#-features)
@@ -26,6 +44,7 @@ it goes.
     - [🧱 Logger API](#-logger-api)
     - [⏳ Using logger methods with or without `await`](#-using-logger-methods-with-or-without-await)
   - [🎨 Choose a format](#-choose-a-format)
+    - [🌸 Pick a color palette](#-pick-a-color-palette)
   - [🧩 Add structured context](#-add-structured-context)
     - [🔒 Redact sensitive fields](#-redact-sensitive-fields)
     - [🌈 Customize pretty-format colors](#-customize-pretty-format-colors)
@@ -34,14 +53,18 @@ it goes.
   - [🛠️ Make it yours](#️-make-it-yours)
     - [🌐 Asynchronous transports](#-asynchronous-transports)
     - [🛟 Handling transport failures](#-handling-transport-failures)
+  - [🔗 Project links](#-project-links)
   - [📄 License](#-license)
+
+</details>
 
 ## ✨ Features
 
 - 🌸 Small, typed and transport-agnostic API.
-- 🎨 Built-in pretty, simple, verbose and JSON formatters.
+- 🎨 Built-in pretty, simple, verbose and JSON formatters with four palettes.
 - 🧩 Structured context with safe error and circular-reference serialization.
 - 🔒 Recursive redaction of sensitive context fields.
+- 🎚️ Level filtering from `debug` through `fatal`, plus `silent`.
 - 📝 Console, file and composable fallback transports.
 - 🌐 Synchronous or asynchronous custom formatters and transports.
 - 🛟 Configurable fail-fast or continue-on-error transport behavior.
@@ -70,7 +93,7 @@ npm install @rickferrdevelop/bea-logger
 ```ts
 import * as bea from "@rickferrdevelop/bea-logger";
 
-const logger = bea.Logger({
+const logger = new bea.Logger({
   transport: bea.transports.console,
 });
 
@@ -115,6 +138,8 @@ The constructor accepts the same options as `createLogger()`:
 - `onTransportError`: synchronous or asynchronous callback invoked when a
   transport fails.
 - `redact`: sensitive key names or `{ paths, censor }`; disabled by default.
+- `level`: minimum enabled level (`debug`, `info`, `warn`, `error`, `fatal` or
+  `silent`); defaults to `debug`.
 
 Instances expose `info`, `warn`, `error`, `fatal` and `debug`. Every method
 accepts `(message, context?)` and returns `Promise<void>`.
@@ -184,6 +209,29 @@ await logger.info("Ready to accept connections");
 
 Available presets are `bea.format.pretty`, `bea.format.simple`,
 `bea.format.verbose` and `bea.format.json`.
+
+### 🌸 Pick a color palette
+
+The `pretty` and `custom` formatters include four built-in palettes:
+
+| Palette | Character |
+| --- | --- |
+| `classic` | Balanced default with familiar level colors. |
+| `vibrant` | Brighter, bolder colors with stronger contrast. |
+| `soft` | Muted colors and dim accents for a calmer output. |
+| `monochrome` | Minimal white and gray styling with no color noise. |
+
+Choose one by name:
+
+```ts
+const logger = new bea.Logger({
+  formatter: bea.format.pretty({ palette: "soft" }),
+});
+```
+
+> [!TIP]
+> Start with `classic` for local development, use `soft` for long terminal
+> sessions, or pick `monochrome` when logs are frequently copied elsewhere.
 
 ## 🧩 Add structured context
 
@@ -413,6 +461,16 @@ const logger = new bea.Logger({ transport: resilientRemote });
 
 The fallback and its optional error callback are both awaited. If either one
 rejects, the logger method rejects with that error.
+
+## 🔗 Project links
+
+| | Destination |
+| --- | --- |
+| 📦 | [Package on npm](https://www.npmjs.com/package/@rickferrdevelop/bea-logger) |
+| 🏷️ | [Releases and release notes](https://github.com/rickferrdev/bea-logger/releases) |
+| 🐛 | [Report a bug](https://github.com/rickferrdev/bea-logger/issues/new?labels=bug) |
+| 💡 | [Suggest an improvement](https://github.com/rickferrdev/bea-logger/issues/new?labels=enhancement) |
+| ⭐ | [Star the project on GitHub](https://github.com/rickferrdev/bea-logger) |
 
 ## 📄 License
 
